@@ -14,6 +14,16 @@ Publicerad som Claude-artefakt: https://claude.ai/artifact/Nkj7nc73n3r9sUsAH71vX
 ## Filer
 
 - `slumpaktien.html`: hela sidan (HTML, CSS och JS i en fil, inga beroenden utöver Google Fonts).
+- `server.mjs`: liten Node-server för staging. Serverar sidan och hämtar/cachelagrar Yahoo-kurser för de symboler som finns i appen.
+- `Dockerfile`: kör servern på port 3000 utan betaltjänster.
+
+## Runhaven staging
+
+Den publika versionen visar livekurser och teknisk analys. Claudes Artifact-capabilities finns inte på en vanlig webbserver, så fundamental och AI-skriven analys visas endast i Claude-versionen. Ingen AI-nyckel eller ny betaltjänst används.
+
+För lokal kontroll: `node server.mjs`, öppna sedan `http://localhost:3000/` och kontrollera `http://localhost:3000/health`. I Coolify används Dockerfile-build, port `3000` och HTTP-hälsokontroll på `/health`.
+
+Yahoo Finance är en extern, inofficiell kurskälla. Om den begränsar anrop visar appen ett fel i stället för påhittade kurser.
 
 ## Publicera en ny version
 

@@ -159,6 +159,7 @@ footer { font-size: 0.8rem; color: var(--muted); max-width: 80ch; }
   .hero { padding: 16px; } .panel { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .sk, .chip.busy i { animation: none; } }
+.standalone .ai-only { display: none; }
 </style>
 
 <div class="wrap">
@@ -228,7 +229,7 @@ footer { font-size: 0.8rem; color: var(--muted); max-width: 80ch; }
     <p class="note" id="tech-comment"></p>
   </section>
 
-  <div class="grid2">
+  <div class="grid2 ai-only">
     <section class="panel" aria-labelledby="t-fund">
       <div class="panel-head"><h2 id="t-fund">Fundamental analys</h2><span class="label" id="fund-asof"></span></div>
       <div class="tbl"><table><thead><tr><th>Nyckeltal</th><th class="num">Värde</th><th>Kommentar</th></tr></thead><tbody id="fund-body"></tbody></table></div>
@@ -246,7 +247,7 @@ footer { font-size: 0.8rem; color: var(--muted); max-width: 80ch; }
     </section>
   </div>
 
-  <div class="grid2">
+  <div class="grid2 ai-only">
     <section class="panel" aria-labelledby="t-risk">
       <h2 id="t-risk">Risker</h2>
       <ul class="items" id="risks"></ul>
@@ -257,12 +258,12 @@ footer { font-size: 0.8rem; color: var(--muted); max-width: 80ch; }
     </section>
   </div>
 
-  <section class="panel" aria-labelledby="t-thesis">
+  <section class="panel ai-only" aria-labelledby="t-thesis">
     <div class="panel-head"><h2 id="t-thesis">Sammanfattning</h2><span class="writing" id="writing"></span></div>
     <div id="thesis"><span class="sk" style="width:95%"></span><span class="sk" style="width:88%"></span><span class="sk" style="width:60%"></span></div>
   </section>
 
-  <footer>
+  <footer id="source-note">
     Kursdata hämtas från Yahoo Finance via webbläsaren i Claude-appen, och den tekniska analysen räknas ut direkt på den datan. Fundamenta, värdering, risker och möjligheter skrivs av Claude utifrån dess kunskap om bolaget. Siffrorna där är ungefärliga och kan vara inaktuella, så kontrollera dem mot bolagets senaste rapport. Det här är inte investeringsrådgivning.
   </footer>
 </div>
@@ -511,6 +512,10 @@ const exchOf = sym => EXCH[sym.includes(".") ? sym.split(".").pop() : ""] || "";
 
 // ---------- helpers ----------
 const $ = id => document.getElementById(id);
+if (!window.claude) {
+  document.body.classList.add("standalone");
+  $("source-note").textContent = "Kursdata hämtas från Yahoo Finance via Runhavens stagingserver. Teknisk analys räknas ut i webbläsaren. Fundamenta och AI-skriven analys finns bara i Claude-versionen. Detta är inte investeringsrådgivning.";
+}
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const nf = (v, d = 2) => v == null || !isFinite(v) ? "–" : Number(v).toLocaleString("sv-SE", { minimumFractionDigits: d, maximumFractionDigits: d });
 const pct = (v, d = 1) => v == null || !isFinite(v) ? "–" : (v > 0 ? "+" : "") + nf(v * 100, d) + " %";
@@ -577,6 +582,13 @@ function pageText(res) {
   return t || JSON.stringify(res?.payload ?? "");
 }
 async function fetchChart(sym) {
+  if (!window.claude) {
+    const res = await fetch("/api/chart/" + encodeURIComponent(sym));
+    if (!res.ok) throw { code: res.status === 404 ? "nodata" : "upstream" };
+    const json = await res.json();
+    if (!json.chart?.result?.[0]?.timestamp?.length) throw { code: "nodata" };
+    return json;
+  }
   const mcp = await getMcp();
   if (!mcp) throw { code: "no_mcp" };
   const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) + "?range=2y&interval=1d";
@@ -597,6 +609,7 @@ function liveErrText(e) {
     case "server_not_connected": return "Appens webbläsare nås inte från den här vyn. Öppna sidan i Claude desktop-appen för livekurser.";
     case "not_in_manifest": case "approval_required": case "cancelled": return "Sidan fick inte använda webbläsaren. Tillåt det i artefaktens behörigheter och dra en ny aktie.";
     case "nodata": case "parse": return "Yahoo Finance gav ingen kursdata för den här aktien.";
+    case "upstream": return "Kursleverantören svarar inte just nu. Försök igen senare.";
     default: return "Kursdatan kunde inte hämtas just nu (" + (e?.code || "okänt fel") + ").";
   }
 }
@@ -684,6 +697,10 @@ let rzT; new ResizeObserver(() => { clearTimeout(rzT); rzT = setTimeout(drawChar
 function pips(v) { return `<div class="pips">${Array.from({ length: 10 }, (_, i) => `<span class="${i < v ? "on" : ""}"></span>`).join("")}</div>`; }
 function renderScores() {
   const a = state.ai?.scores || {}, t = state.tech?.techScore ?? a.momentum;
+  if (!window.claude) {
+    $("scores").innerHTML = `<div class="score"><span class="label">Teknisk trend</span>${typeof t === "number" ? `<span class="v">${t}<small> /10</small></span>${pips(t)}` : `<span class="v">–</span>${pips(0)}`}</div>`;
+    return;
+  }
   const list = [["Värdering", a.valuation], ["Kvalitet", a.quality], ["Tillväxt", a.growth], ["Finansiell styrka", a.financialStrength], ["Teknisk trend", t]];
   const have = list.filter(x => typeof x[1] === "number");
   const tot = have.length ? have.reduce((s, x) => s + x[1], 0) / have.length : null;
@@ -825,7 +842,12 @@ function aiErrText(code) {
 async function runAI(my) {
   const sample = await getSample();
   if (my !== runId) return;
-  if (!sample) { setChip("st-ai", "err", "Analys saknas"); aiFail("Claude är inte tillgänglig i den här vyn. Öppna sidan i Claude för den skrivna analysen."); return; }
+  if (!sample) {
+    setChip("st-ai", "", "Endast teknisk analys");
+    $("h-desc").textContent = "Livekurser och tekniska signaler för " + (state.longName || state.name) + ". Fundamental analys finns i Claude-versionen.";
+    $("h-stance").innerHTML = `<div><span class="label">Teknisk trend</span><br><b>${esc(state.tech?.trend || "Saknas")}</b><p>Bygger enbart på historisk kursdata.</p></div>`;
+    return;
+  }
   setChip("st-ai", "busy", "Claude analyserar");
   aiCtl = new AbortController();
   try {

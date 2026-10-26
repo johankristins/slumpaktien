@@ -1,0 +1,904 @@
+<title>Slumpaktien</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a research note on a cool slate desk. Ticker strip, then a summary band, then charts, then the written analysis in two columns. */
+:root {
+  --bg: #eef1f5; --surface: #ffffff; --sunk: #f5f7fa; --ink: #0f1a2b; --muted: #5b6678; --line: #d6dce5;
+  --accent: #1f4fd1; --accent-soft: #e3eafc;
+  --sma50: #c27a00; --sma200: #7a4cc2;
+  --up: #0f8a5f; --up-soft: #def3ea; --down: #c8333a; --down-soft: #fbe3e4; --warn: #a86a0c; --warn-soft: #fbf0dc;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1018; --surface: #121a26; --sunk: #0f1620; --ink: #e6ebf2; --muted: #8b97a8; --line: #243042;
+  --accent: #7a9dff; --accent-soft: #1a2747;
+  --sma50: #f0a830; --sma200: #b28cff;
+  --up: #34c38f; --up-soft: #12302a; --down: #f0646b; --down-soft: #3a1a1e; --warn: #e0a53a; --warn-soft: #33270f;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0b1018; --surface: #121a26; --sunk: #0f1620; --ink: #e6ebf2; --muted: #8b97a8; --line: #243042;
+  --accent: #7a9dff; --accent-soft: #1a2747;
+  --sma50: #f0a830; --sma200: #b28cff;
+  --up: #34c38f; --up-soft: #12302a; --down: #f0646b; --down-soft: #3a1a1e; --warn: #e0a53a; --warn-soft: #33270f;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 56px; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.muted { color: var(--muted); }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
+.brand span { color: var(--muted); font-size: 0.85rem; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: var(--surface); padding: 9px 16px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: 0.55; cursor: progress; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.dice { width: 16px; height: 16px; }
+
+/* Status chips */
+.status { display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.8rem; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); display: inline-block; }
+.chip.ok i { background: var(--up); } .chip.busy i { background: var(--warn); animation: pulse 1s infinite; } .chip.err i { background: var(--down); }
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+/* Hero */
+.hero { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; }
+.ident { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.tick { font-family: var(--f-mono); font-size: 0.9rem; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 6px; justify-self: start; font-weight: 500; }
+.ident h1 { font-size: clamp(1.8rem, 4.2vw, 2.9rem); font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.88rem; }
+.desc { max-width: 62ch; margin: 0; }
+.pricebox { display: grid; gap: 12px; align-content: start; }
+.price { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.price .big { font-family: var(--f-display); font-size: clamp(2rem, 4.5vw, 2.8rem); font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.price .cur { color: var(--muted); font-weight: 500; }
+.delta { font-family: var(--f-mono); font-weight: 500; padding: 2px 8px; border-radius: 6px; font-size: 0.9rem; }
+.delta.pos { color: var(--up); background: var(--up-soft); } .delta.neg { color: var(--down); background: var(--down-soft); }
+.stance { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line); }
+.stance b { font-family: var(--f-display); font-size: 1.15rem; }
+.stance.pos b { color: var(--up); } .stance.neg b { color: var(--down); } .stance.neu b { color: var(--warn); }
+.stance p { margin: 0; font-size: 0.88rem; color: var(--muted); }
+
+/* range bars */
+.rangebar { display: grid; gap: 6px; }
+.track { position: relative; height: 8px; background: var(--sunk); border: 1px solid var(--line); border-radius: 999px; }
+.track .fill { position: absolute; top: -1px; bottom: -1px; border-radius: 999px; background: var(--accent-soft); border: 1px solid var(--accent); }
+.track .pin { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--ink); border: 2px solid var(--surface); }
+.track .tickm { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--accent); transform: translateX(-1px); }
+.rangeends { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--muted); font-family: var(--f-mono); }
+
+/* Scores */
+.scores { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.score { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
+.score .v { font-family: var(--f-display); font-size: 1.7rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.score .v small { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+.pips { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.pips span { height: 6px; border-radius: 2px; background: var(--line); }
+.pips span.on { background: var(--accent); }
+.score.total { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.score.total .label, .score.total .v small { color: var(--bg); opacity: 0.7; }
+.score.total .pips span { background: color-mix(in srgb, var(--bg) 25%, transparent); }
+.score.total .pips span.on { background: var(--bg); }
+
+/* Panels */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.grid-tech { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 20px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: var(--muted); padding: 5px 12px; font-size: 0.82rem; font-family: var(--f-mono); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart svg text { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-family: var(--f-mono); font-size: 0.75rem; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -110%); line-height: 1.4; }
+.subcharts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.subcharts .label { margin-bottom: 4px; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+th.num { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+.tbl { overflow-x: auto; }
+.sig { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.sig.bull { color: var(--up); background: var(--up-soft); } .sig.bear { color: var(--down); background: var(--down-soft); } .sig.neu { color: var(--warn); background: var(--warn-soft); }
+.kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.kv div { background: var(--surface); padding: 10px 12px; display: grid; gap: 2px; }
+.kv b { font-family: var(--f-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* Risk & opportunity lists */
+.items { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.items li { display: grid; grid-template-columns: 4px minmax(0, 1fr); gap: 12px; }
+.items li::before { content: ""; border-radius: 2px; background: var(--line); }
+.items li.hog::before { background: var(--down); } .items li.medel::before { background: var(--warn); } .items li.lag::before { background: var(--muted); }
+.opps li.hog::before { background: var(--up); } .opps li.medel::before { background: color-mix(in srgb, var(--up) 55%, var(--line)); }
+.items h3 { font-family: var(--f-body); font-size: 0.95rem; font-weight: 600; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.items h3 small { font-weight: 500; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.items p { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }
+.thesis { font-size: 1.02rem; max-width: 70ch; margin: 0; }
+.note { font-size: 0.8rem; color: var(--muted); margin: 0; }
+.notice { padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--line); color: var(--muted); font-size: 0.9rem; background: var(--sunk); }
+.notice.err { border-style: solid; border-color: var(--down); color: var(--ink); background: var(--down-soft); }
+
+/* Skeletons */
+.sk { display: block; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--sunk), var(--line), var(--sunk)); background-size: 200% 100%; animation: sh 1.4s linear infinite; }
+.sk + .sk { margin-top: 8px; }
+@keyframes sh { to { background-position: -200% 0; } }
+.writing { font-family: var(--f-mono); font-size: 0.78rem; color: var(--muted); }
+
+footer { font-size: 0.8rem; color: var(--muted); max-width: 80ch; }
+
+@media (max-width: 960px) {
+  .scores { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-tech { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .hero, .grid2, .subcharts { grid-template-columns: minmax(0, 1fr); }
+  .scores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero { padding: 16px; } .panel { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .sk, .chip.busy i { animation: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>Slumpaktien</h1><span>en slumpad aktie från världens börser, analyserad</span></div>
+    <div class="actions">
+      <div class="status" aria-live="polite">
+        <span class="chip" id="st-price"><i></i><span>Kursdata</span></span>
+        <span class="chip" id="st-ai"><i></i><span>Analys</span></span>
+      </div>
+      <button class="btn" id="btn-new" type="button">
+        <svg class="dice" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="5" r="1.3" fill="currentColor"/><circle cx="11" cy="11" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/></svg>
+        Ny slumpaktie
+      </button>
+    </div>
+  </header>
+
+  <section class="hero" aria-label="Aktie">
+    <div class="ident">
+      <span class="tick" id="h-tick">…</span>
+      <h1 id="h-name">Drar en aktie…</h1>
+      <div class="meta" id="h-meta"></div>
+      <p class="desc" id="h-desc"><span class="sk" style="width:90%"></span><span class="sk" style="width:70%"></span></p>
+    </div>
+    <div class="pricebox">
+      <div>
+        <div class="label" id="h-pricelabel">Senaste kurs</div>
+        <div class="price"><span class="big" id="h-price">–</span><span class="cur" id="h-cur"></span><span class="delta" id="h-delta" hidden></span></div>
+        <div class="note" id="h-asof"></div>
+      </div>
+      <div class="rangebar" id="h-range" hidden>
+        <div class="label">52 veckors intervall</div>
+        <div class="track"><span class="pin" id="h-range-pin"></span></div>
+        <div class="rangeends"><span id="h-lo"></span><span id="h-hi"></span></div>
+      </div>
+      <div class="stance" id="h-stance"><div><span class="label">Analysens lutning</span><br><b>Väntar på analys</b><p>Claude läser in bolaget.</p></div></div>
+    </div>
+  </section>
+
+  <section class="scores" aria-label="Betyg" id="scores"></section>
+
+  <section class="panel" aria-labelledby="t-tech">
+    <div class="panel-head">
+      <h2 id="t-tech">Teknisk analys</h2>
+      <div class="seg" role="group" aria-label="Tidsperiod">
+        <button type="button" data-range="126" aria-pressed="false">6M</button>
+        <button type="button" data-range="252" aria-pressed="true">1Å</button>
+        <button type="button" data-range="9999" aria-pressed="false">2Å</button>
+      </div>
+    </div>
+    <div id="tech-body">
+      <div class="grid-tech">
+        <div style="display:grid;gap:12px;min-width:0">
+          <div class="legend"><span><i style="background:var(--accent)"></i>Stängningskurs</span><span><i style="background:var(--sma50)"></i>SMA 50</span><span><i style="background:var(--sma200)"></i>SMA 200</span><span><i style="background:var(--line);height:8px"></i>Volym</span></div>
+          <div class="chart" id="c-price"><span class="sk" style="height:300px"></span></div>
+          <div class="subcharts">
+            <div><div class="label">RSI (14)</div><div class="chart" id="c-rsi"></div></div>
+            <div><div class="label">MACD (12, 26, 9)</div><div class="chart" id="c-macd"></div></div>
+          </div>
+        </div>
+        <div style="display:grid;gap:14px;align-content:start;min-width:0">
+          <div class="kv" id="tech-kv"></div>
+          <div class="tbl"><table><thead><tr><th>Signal</th><th>Läge</th></tr></thead><tbody id="tech-sig"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+    <p class="note" id="tech-comment"></p>
+  </section>
+
+  <div class="grid2">
+    <section class="panel" aria-labelledby="t-fund">
+      <div class="panel-head"><h2 id="t-fund">Fundamental analys</h2><span class="label" id="fund-asof"></span></div>
+      <div class="tbl"><table><thead><tr><th>Nyckeltal</th><th class="num">Värde</th><th>Kommentar</th></tr></thead><tbody id="fund-body"></tbody></table></div>
+    </section>
+    <section class="panel" aria-labelledby="t-val">
+      <div class="panel-head"><h2 id="t-val">Värdering</h2></div>
+      <div class="tbl"><table><thead><tr><th>Multipel</th><th class="num">Bolaget</th><th class="num">Sektor</th><th>Bedömning</th></tr></thead><tbody id="val-body"></tbody></table></div>
+      <div class="rangebar" id="fv" hidden>
+        <div class="label">Motiverat värde per aktie: pessimistiskt, bas, optimistiskt</div>
+        <div class="track" id="fv-track"></div>
+        <div class="rangeends" id="fv-ends"></div>
+        <p class="note" id="fv-note"></p>
+      </div>
+      <p class="note" id="val-summary"></p>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel" aria-labelledby="t-risk">
+      <h2 id="t-risk">Risker</h2>
+      <ul class="items" id="risks"></ul>
+    </section>
+    <section class="panel" aria-labelledby="t-opp">
+      <h2 id="t-opp">Möjligheter</h2>
+      <ul class="items opps" id="opps"></ul>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="t-thesis">
+    <div class="panel-head"><h2 id="t-thesis">Sammanfattning</h2><span class="writing" id="writing"></span></div>
+    <div id="thesis"><span class="sk" style="width:95%"></span><span class="sk" style="width:88%"></span><span class="sk" style="width:60%"></span></div>
+  </section>
+
+  <footer>
+    Kursdata hämtas från Yahoo Finance via webbläsaren i Claude-appen, och den tekniska analysen räknas ut direkt på den datan. Fundamenta, värdering, risker och möjligheter skrivs av Claude utifrån dess kunskap om bolaget. Siffrorna där är ungefärliga och kan vara inaktuella, så kontrollera dem mot bolagets senaste rapport. Det här är inte investeringsrådgivning.
+  </footer>
+</div>
+
+<script>
+// ---------- Universe: Yahoo symbol | name | country ----------
+const UNIVERSE = `AAPL|Apple|USA
+MSFT|Microsoft|USA
+NVDA|Nvidia|USA
+AMZN|Amazon|USA
+GOOGL|Alphabet|USA
+META|Meta Platforms|USA
+TSLA|Tesla|USA
+BRK-B|Berkshire Hathaway|USA
+JPM|JPMorgan Chase|USA
+V|Visa|USA
+MA|Mastercard|USA
+UNH|UnitedHealth|USA
+JNJ|Johnson & Johnson|USA
+PG|Procter & Gamble|USA
+KO|Coca-Cola|USA
+PEP|PepsiCo|USA
+XOM|Exxon Mobil|USA
+CVX|Chevron|USA
+LLY|Eli Lilly|USA
+ABBV|AbbVie|USA
+MRK|Merck & Co|USA
+COST|Costco|USA
+WMT|Walmart|USA
+HD|Home Depot|USA
+NKE|Nike|USA
+DIS|Walt Disney|USA
+NFLX|Netflix|USA
+ADBE|Adobe|USA
+CRM|Salesforce|USA
+ORCL|Oracle|USA
+INTC|Intel|USA
+AMD|Advanced Micro Devices|USA
+QCOM|Qualcomm|USA
+AVGO|Broadcom|USA
+CSCO|Cisco|USA
+IBM|IBM|USA
+BA|Boeing|USA
+CAT|Caterpillar|USA
+DE|Deere & Company|USA
+GE|GE Aerospace|USA
+F|Ford|USA
+GM|General Motors|USA
+UBER|Uber|USA
+ABNB|Airbnb|USA
+SBUX|Starbucks|USA
+MCD|McDonald's|USA
+PYPL|PayPal|USA
+PLTR|Palantir|USA
+CRWD|CrowdStrike|USA
+NOW|ServiceNow|USA
+TXN|Texas Instruments|USA
+MU|Micron|USA
+GS|Goldman Sachs|USA
+BAC|Bank of America|USA
+T|AT&T|USA
+VZ|Verizon|USA
+PFE|Pfizer|USA
+AMGN|Amgen|USA
+ISRG|Intuitive Surgical|USA
+LMT|Lockheed Martin|USA
+NEE|NextEra Energy|USA
+O|Realty Income|USA
+VOLV-B.ST|Volvo|Sverige
+ATCO-A.ST|Atlas Copco|Sverige
+ERIC-B.ST|Ericsson|Sverige
+HM-B.ST|H&M|Sverige
+INVE-B.ST|Investor|Sverige
+SEB-A.ST|SEB|Sverige
+SHB-A.ST|Handelsbanken|Sverige
+SWED-A.ST|Swedbank|Sverige
+ABB.ST|ABB|Sverige
+AZN.ST|AstraZeneca|Sverige
+SAND.ST|Sandvik|Sverige
+ESSITY-B.ST|Essity|Sverige
+EVO.ST|Evolution|Sverige
+ASSA-B.ST|Assa Abloy|Sverige
+ALFA.ST|Alfa Laval|Sverige
+HEXA-B.ST|Hexagon|Sverige
+SKF-B.ST|SKF|Sverige
+TELIA.ST|Telia|Sverige
+BOL.ST|Boliden|Sverige
+NIBE-B.ST|NIBE|Sverige
+EPI-A.ST|Epiroc|Sverige
+SAAB-B.ST|Saab|Sverige
+ELUX-B.ST|Electrolux|Sverige
+KINV-B.ST|Kinnevik|Sverige
+AXFO.ST|Axfood|Sverige
+LIFCO-B.ST|Lifco|Sverige
+INDU-C.ST|Industrivärden|Sverige
+SSAB-A.ST|SSAB|Sverige
+GETI-B.ST|Getinge|Sverige
+HUSQ-B.ST|Husqvarna|Sverige
+TEL2-B.ST|Tele2|Sverige
+CAST.ST|Castellum|Sverige
+BALD-B.ST|Balder|Sverige
+THULE.ST|Thule|Sverige
+AAK.ST|AAK|Sverige
+AZA.ST|Avanza|Sverige
+SINCH.ST|Sinch|Sverige
+EQNR.OL|Equinor|Norge
+DNB.OL|DNB Bank|Norge
+MOWI.OL|Mowi|Norge
+TEL.OL|Telenor|Norge
+NHY.OL|Norsk Hydro|Norge
+ORK.OL|Orkla|Norge
+YAR.OL|Yara|Norge
+KOG.OL|Kongsberg Gruppen|Norge
+NOVO-B.CO|Novo Nordisk|Danmark
+MAERSK-B.CO|A.P. Møller-Mærsk|Danmark
+DSV.CO|DSV|Danmark
+CARL-B.CO|Carlsberg|Danmark
+VWS.CO|Vestas|Danmark
+ORSTED.CO|Ørsted|Danmark
+GMAB.CO|Genmab|Danmark
+PNDORA.CO|Pandora|Danmark
+NOKIA.HE|Nokia|Finland
+KNEBV.HE|Kone|Finland
+NESTE.HE|Neste|Finland
+SAMPO.HE|Sampo|Finland
+UPM.HE|UPM-Kymmene|Finland
+FORTUM.HE|Fortum|Finland
+SAP.DE|SAP|Tyskland
+SIE.DE|Siemens|Tyskland
+ALV.DE|Allianz|Tyskland
+BAS.DE|BASF|Tyskland
+BAYN.DE|Bayer|Tyskland
+BMW.DE|BMW|Tyskland
+MBG.DE|Mercedes-Benz|Tyskland
+VOW3.DE|Volkswagen|Tyskland
+DTE.DE|Deutsche Telekom|Tyskland
+ADS.DE|Adidas|Tyskland
+IFX.DE|Infineon|Tyskland
+MUV2.DE|Munich Re|Tyskland
+DBK.DE|Deutsche Bank|Tyskland
+RHM.DE|Rheinmetall|Tyskland
+MC.PA|LVMH|Frankrike
+OR.PA|L'Oréal|Frankrike
+TTE.PA|TotalEnergies|Frankrike
+SAN.PA|Sanofi|Frankrike
+AIR.PA|Airbus|Frankrike
+BNP.PA|BNP Paribas|Frankrike
+RMS.PA|Hermès|Frankrike
+KER.PA|Kering|Frankrike
+SU.PA|Schneider Electric|Frankrike
+AI.PA|Air Liquide|Frankrike
+DG.PA|Vinci|Frankrike
+ASML.AS|ASML|Nederländerna
+ADYEN.AS|Adyen|Nederländerna
+PRX.AS|Prosus|Nederländerna
+HEIA.AS|Heineken|Nederländerna
+PHIA.AS|Philips|Nederländerna
+INGA.AS|ING|Nederländerna
+NESN.SW|Nestlé|Schweiz
+NOVN.SW|Novartis|Schweiz
+ROG.SW|Roche|Schweiz
+UBSG.SW|UBS|Schweiz
+ZURN.SW|Zurich Insurance|Schweiz
+CFR.SW|Richemont|Schweiz
+SIKA.SW|Sika|Schweiz
+SHEL.L|Shell|Storbritannien
+HSBA.L|HSBC|Storbritannien
+ULVR.L|Unilever|Storbritannien
+BP.L|BP|Storbritannien
+GSK.L|GSK|Storbritannien
+RIO.L|Rio Tinto|Storbritannien
+BARC.L|Barclays|Storbritannien
+LLOY.L|Lloyds Banking Group|Storbritannien
+VOD.L|Vodafone|Storbritannien
+DGE.L|Diageo|Storbritannien
+RR.L|Rolls-Royce|Storbritannien
+TSCO.L|Tesco|Storbritannien
+BATS.L|British American Tobacco|Storbritannien
+REL.L|RELX|Storbritannien
+ITX.MC|Inditex|Spanien
+SAN.MC|Banco Santander|Spanien
+IBE.MC|Iberdrola|Spanien
+BBVA.MC|BBVA|Spanien
+ENEL.MI|Enel|Italien
+ENI.MI|Eni|Italien
+ISP.MI|Intesa Sanpaolo|Italien
+RACE.MI|Ferrari|Italien
+UCG.MI|UniCredit|Italien
+7203.T|Toyota|Japan
+6758.T|Sony|Japan
+9984.T|SoftBank Group|Japan
+6861.T|Keyence|Japan
+8306.T|Mitsubishi UFJ|Japan
+7974.T|Nintendo|Japan
+9983.T|Fast Retailing|Japan
+6501.T|Hitachi|Japan
+8035.T|Tokyo Electron|Japan
+7267.T|Honda|Japan
+4063.T|Shin-Etsu Chemical|Japan
+0700.HK|Tencent|Kina/Hongkong
+9988.HK|Alibaba|Kina/Hongkong
+1299.HK|AIA Group|Hongkong
+3690.HK|Meituan|Kina/Hongkong
+1810.HK|Xiaomi|Kina/Hongkong
+0941.HK|China Mobile|Kina/Hongkong
+1211.HK|BYD|Kina/Hongkong
+0388.HK|Hong Kong Exchanges|Hongkong
+005930.KS|Samsung Electronics|Sydkorea
+000660.KS|SK Hynix|Sydkorea
+005380.KS|Hyundai Motor|Sydkorea
+2330.TW|TSMC|Taiwan
+2317.TW|Hon Hai (Foxconn)|Taiwan
+2454.TW|MediaTek|Taiwan
+RELIANCE.NS|Reliance Industries|Indien
+TCS.NS|Tata Consultancy Services|Indien
+INFY.NS|Infosys|Indien
+HDFCBANK.NS|HDFC Bank|Indien
+ICICIBANK.NS|ICICI Bank|Indien
+BHP.AX|BHP|Australien
+CBA.AX|Commonwealth Bank|Australien
+CSL.AX|CSL|Australien
+WES.AX|Wesfarmers|Australien
+FMG.AX|Fortescue|Australien
+MQG.AX|Macquarie Group|Australien
+RY.TO|Royal Bank of Canada|Kanada
+TD.TO|Toronto-Dominion Bank|Kanada
+SHOP.TO|Shopify|Kanada
+ENB.TO|Enbridge|Kanada
+CNR.TO|Canadian National Railway|Kanada
+BN.TO|Brookfield|Kanada
+ATD.TO|Alimentation Couche-Tard|Kanada
+PETR4.SA|Petrobras|Brasilien
+VALE3.SA|Vale|Brasilien
+ITUB4.SA|Itaú Unibanco|Brasilien
+WEGE3.SA|WEG|Brasilien
+WALMEX.MX|Walmart de México|Mexiko
+D05.SI|DBS Group|Singapore
+O39.SI|OCBC Bank|Singapore
+NPN.JO|Naspers|Sydafrika
+2222.SR|Saudi Aramco|Saudiarabien
+PKO.WA|PKO Bank Polski|Polen
+CDR.WA|CD Projekt|Polen`.split("\n").map(l => { const [sym, name, country] = l.split("|"); return { sym, name, country }; });
+
+const EXCH = { "": "NYSE / Nasdaq", ST: "Nasdaq Stockholm", OL: "Oslo Børs", CO: "Nasdaq Köpenhamn", HE: "Nasdaq Helsingfors", DE: "Xetra", PA: "Euronext Paris", AS: "Euronext Amsterdam", SW: "SIX Swiss Exchange", L: "London Stock Exchange", MC: "Bolsa de Madrid", MI: "Borsa Italiana", T: "Tokyo Stock Exchange", HK: "Hong Kong Exchange", KS: "Korea Exchange", TW: "Taiwan Stock Exchange", NS: "NSE India", AX: "ASX", TO: "Toronto Stock Exchange", SA: "B3 São Paulo", MX: "Bolsa Mexicana", SI: "Singapore Exchange", JO: "JSE Johannesburg", SR: "Tadawul", WA: "Warszawabörsen" };
+const exchOf = sym => EXCH[sym.includes(".") ? sym.split(".").pop() : ""] || "";
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = (v, d = 2) => v == null || !isFinite(v) ? "–" : Number(v).toLocaleString("sv-SE", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (v, d = 1) => v == null || !isFinite(v) ? "–" : (v > 0 ? "+" : "") + nf(v * 100, d) + " %";
+const priceDigits = p => p >= 1000 ? 0 : p >= 10 ? 2 : 3;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function setChip(id, state, text) { const el = $(id); el.className = "chip " + state; el.querySelector("span").textContent = text; }
+
+let runId = 0, aiCtl = null, state = null, range = 252;
+let mcpP = null, sampleP = null;
+function getMcp() { return mcpP ??= (window.claude ? claude.use("mcp") : Promise.resolve(null)); }
+function getSample() { return sampleP ??= (window.claude ? claude.use("sample") : Promise.resolve(null)); }
+
+// ---------- indicators ----------
+function sma(a, n) { const o = Array(a.length).fill(null); let s = 0; for (let i = 0; i < a.length; i++) { s += a[i]; if (i >= n) s -= a[i - n]; if (i >= n - 1) o[i] = s / n; } return o; }
+function ema(a, n) { const o = Array(a.length).fill(null), k = 2 / (n + 1); let start = a.findIndex(v => v != null); if (start < 0 || a.length - start < n) return o; let s = 0; for (let i = start; i < start + n; i++) s += a[i]; let e = s / n; o[start + n - 1] = e; for (let i = start + n; i < a.length; i++) { e = a[i] * k + e * (1 - k); o[i] = e; } return o; }
+function rsi(c, n = 14) { const o = Array(c.length).fill(null); if (c.length <= n) return o; let g = 0, l = 0; for (let i = 1; i <= n; i++) { const d = c[i] - c[i - 1]; d > 0 ? g += d : l -= d; } g /= n; l /= n; o[n] = l === 0 ? 100 : 100 - 100 / (1 + g / l); for (let i = n + 1; i < c.length; i++) { const d = c[i] - c[i - 1]; g = (g * (n - 1) + Math.max(d, 0)) / n; l = (l * (n - 1) + Math.max(-d, 0)) / n; o[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } return o; }
+
+function analyse(raw) {
+  const r = raw.chart.result[0], q = r.indicators.quote[0];
+  const rows = [];
+  r.timestamp.forEach((t, i) => { if (q.close[i] != null) rows.push({ t: t * 1000, o: q.open[i], h: q.high[i] ?? q.close[i], l: q.low[i] ?? q.close[i], c: q.close[i], v: q.volume[i] || 0 }); });
+  const c = rows.map(x => x.c), n = c.length, last = c[n - 1];
+  const s20 = sma(c, 20), s50 = sma(c, 50), s200 = sma(c, 200);
+  const e12 = ema(c, 12), e26 = ema(c, 26);
+  const macd = c.map((_, i) => e12[i] != null && e26[i] != null ? e12[i] - e26[i] : null);
+  const sigRaw = ema(macd.map(v => v ?? null).filter(v => v != null), 9);
+  const offset = macd.findIndex(v => v != null), sig = Array(n).fill(null);
+  sigRaw.forEach((v, i) => sig[offset + i] = v);
+  const rs = rsi(c);
+  const back = d => n > d ? last / c[n - 1 - d] - 1 : null;
+  const yr = rows.slice(-252), hi52 = Math.max(...yr.map(x => x.h)), lo52 = Math.min(...yr.map(x => x.l));
+  const lr = []; for (let i = Math.max(1, n - 252); i < n; i++) lr.push(Math.log(c[i] / c[i - 1]));
+  const mean = lr.reduce((a, b) => a + b, 0) / lr.length;
+  const vol = Math.sqrt(lr.reduce((a, b) => a + (b - mean) ** 2, 0) / (lr.length - 1)) * Math.sqrt(252);
+  let peak = -Infinity, mdd = 0; yr.forEach(x => { peak = Math.max(peak, x.c); mdd = Math.min(mdd, x.c / peak - 1); });
+  const last60 = rows.slice(-60), support = Math.min(...last60.map(x => x.l)), resist = Math.max(...last60.map(x => x.h));
+  const year = new Date(rows[n - 1].t).getFullYear(); const ytdBase = rows.find(x => new Date(x.t).getFullYear() === year);
+  // ATR 14
+  let atr = null; if (n > 15) { const tr = []; for (let i = n - 14; i < n; i++) tr.push(Math.max(rows[i].h - rows[i].l, Math.abs(rows[i].h - c[i - 1]), Math.abs(rows[i].l - c[i - 1]))); atr = tr.reduce((a, b) => a + b, 0) / 14; }
+  // recent cross
+  let cross = null; for (let i = n - 1; i > n - 40 && i > 0; i--) { if (s50[i] == null || s200[i] == null || s50[i - 1] == null || s200[i - 1] == null) break; if ((s50[i] > s200[i]) !== (s50[i - 1] > s200[i - 1])) { cross = { golden: s50[i] > s200[i], daysAgo: n - 1 - i }; break; } }
+  const L = i => i[n - 1];
+  const R = L(rs), M = L(macd), S = L(sig);
+  const signals = [];
+  const add = (name, st, txt) => signals.push({ name, st, txt });
+  if (L(s50) != null) add("Kurs mot SMA 50", last > L(s50) ? "bull" : "bear", last > L(s50) ? "Över" : "Under");
+  if (L(s200) != null) add("Kurs mot SMA 200", last > L(s200) ? "bull" : "bear", last > L(s200) ? "Över" : "Under");
+  if (L(s50) != null && L(s200) != null) add("SMA 50 mot SMA 200", L(s50) > L(s200) ? "bull" : "bear", L(s50) > L(s200) ? "Golden cross-läge" : "Death cross-läge");
+  if (M != null && S != null) add("MACD mot signallinje", M > S ? "bull" : "bear", M > S ? "Köpsignal" : "Säljsignal");
+  if (R != null) add("RSI (14) " + nf(R, 0), R > 70 ? "neu" : R < 30 ? "neu" : R >= 50 ? "bull" : "bear", R > 70 ? "Överköpt" : R < 30 ? "Översåld" : R >= 50 ? "Positivt momentum" : "Svagt momentum");
+  if (back(63) != null) add("Momentum 3 mån", back(63) > 0 ? "bull" : "bear", pct(back(63)));
+  add("Avstånd till 52v-högsta", last / hi52 - 1 > -0.1 ? "bull" : last / hi52 - 1 < -0.3 ? "bear" : "neu", pct(last / hi52 - 1));
+  const pts = signals.reduce((a, s) => a + (s.st === "bull" ? 1 : s.st === "neu" ? 0.5 : 0), 0);
+  const techScore = Math.max(1, Math.min(10, Math.round(1 + 9 * pts / signals.length)));
+  let trend = "Sidledes"; if (L(s50) != null && L(s200) != null) { if (last > L(s50) && L(s50) > L(s200)) trend = "Stigande trend"; else if (last < L(s50) && L(s50) < L(s200)) trend = "Fallande trend"; else if (last > L(s200)) trend = "Uppåt, men svalnande"; else trend = "Nedåt, försök till vändning"; }
+  return { rows, c, s20, s50, s200, macd, sig, rs, last, prev: rows[n - 2]?.c, hi52, lo52, vol, mdd, support, resist, atr, cross, signals, techScore, trend,
+    ret: { m1: back(21), m3: back(63), m6: back(126), y1: back(252), ytd: ytdBase ? last / ytdBase.c - 1 : null } };
+}
+
+// ---------- live data via the app's browser ----------
+function pageText(res) {
+  if (typeof res?.payload === "string") return res.payload;
+  const t = (res?.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+  return t || JSON.stringify(res?.payload ?? "");
+}
+async function fetchChart(sym) {
+  const mcp = await getMcp();
+  if (!mcp) throw { code: "no_mcp" };
+  const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) + "?range=2y&interval=1d";
+  await mcp.callTool("host:claude_browser", "navigate", { url });
+  const res = await mcp.callTool("host:claude_browser", "get_page_text", { max_chars: 600000 });
+  let txt = pageText(res);
+  const a = txt.indexOf('{"chart"'); if (a < 0) throw { code: "parse" };
+  let b = txt.indexOf("Tab Context", a); txt = txt.slice(a, b > a ? b : undefined);
+  txt = txt.slice(0, txt.lastIndexOf("}") + 1);
+  const json = JSON.parse(txt);
+  if (!json.chart?.result?.[0]?.timestamp?.length) throw { code: "nodata" };
+  return json;
+}
+function liveErrText(e) {
+  switch (e?.code) {
+    case "no_mcp": case "not_granted": case "capability_disabled": case "capability_removed":
+      return "Livekurser kräver att sidan öppnas i Claude desktop-appen, där sidan får använda appens webbläsare.";
+    case "server_not_connected": return "Appens webbläsare nås inte från den här vyn. Öppna sidan i Claude desktop-appen för livekurser.";
+    case "not_in_manifest": case "approval_required": case "cancelled": return "Sidan fick inte använda webbläsaren. Tillåt det i artefaktens behörigheter och dra en ny aktie.";
+    case "nodata": case "parse": return "Yahoo Finance gav ingen kursdata för den här aktien.";
+    default: return "Kursdatan kunde inte hämtas just nu (" + (e?.code || "okänt fel") + ").";
+  }
+}
+
+// ---------- charts ----------
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function niceTicks(min, max, count) { const span = max - min || 1, step0 = span / count, mag = 10 ** Math.floor(Math.log10(step0)), f = step0 / mag; const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag; const out = []; for (let v = Math.ceil(min / step) * step; v <= max; v += step) out.push(v); return out; }
+const fmtD = t => new Date(t).toLocaleDateString("sv-SE", { month: "short", year: "2-digit" });
+const fmtDay = t => new Date(t).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric" });
+function linePath(vals, x, y) { let d = "", pen = false; vals.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); pen = true; }); return d; }
+
+function drawCharts() {
+  if (!state?.tech) return;
+  const T = state.tech, n = T.rows.length, from = Math.max(0, n - range);
+  const rows = T.rows.slice(from), c = T.c.slice(from), s50 = T.s50.slice(from), s200 = T.s200.slice(from);
+  const box = $("c-price"), W = Math.max(280, box.clientWidth), H = W < 500 ? 240 : 300, padR = 58, padB = 22, volH = H * 0.18;
+  const all = [...c, ...s50.filter(v => v != null), ...s200.filter(v => v != null)];
+  let mn = Math.min(...all), mx = Math.max(...all); const pad = (mx - mn) * 0.06; mn -= pad; mx += pad;
+  const x = i => (i / Math.max(1, rows.length - 1)) * (W - padR), y = v => (1 - (v - mn) / (mx - mn)) * (H - padB - 4) + 4;
+  const vmax = Math.max(...rows.map(r => r.v)) || 1;
+  const up = c[c.length - 1] >= c[0];
+  const yt = niceTicks(mn, mx, 4), dg = priceDigits(T.last);
+  const step = Math.max(1, Math.round(rows.length / (W < 500 ? 3 : 6)));
+  let xt = ""; for (let i = Math.round(step / 2); i < rows.length - step / 3; i += step) xt += `<text x="${x(i)}" y="${H - 4}" text-anchor="middle">${fmtD(rows[i].t)}</text>`;
+  const bw = Math.max(1, (W - padR) / rows.length - 1);
+  const vols = rows.map((r, i) => `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(H - padB - (r.v / vmax) * volH).toFixed(1)}" width="${bw.toFixed(1)}" height="${((r.v / vmax) * volH).toFixed(1)}" fill="var(--line)"/>`).join("");
+  const area = linePath(c, x, y) + `L${x(c.length - 1)} ${H - padB}L0 ${H - padB}Z`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Kursgraf med glidande medelvärden">
+    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity="0.22"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+    ${yt.map(v => `<line x1="0" x2="${W - padR}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-dasharray="2 4"/><text x="${W - padR + 8}" y="${y(v) + 4}">${nf(v, v >= 1000 ? 0 : dg > 2 ? 2 : v % 1 ? 1 : 0)}</text>`).join("")}
+    ${vols}
+    <path d="${area}" fill="url(#ga)"/>
+    <path d="${linePath(s200, x, y)}" fill="none" stroke="var(--sma200)" stroke-width="1.5"/>
+    <path d="${linePath(s50, x, y)}" fill="none" stroke="var(--sma50)" stroke-width="1.5"/>
+    <path d="${linePath(c, x, y)}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${x(c.length - 1)}" cy="${y(c[c.length - 1])}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    ${xt}
+    <line id="hx" x1="0" x2="0" y1="0" y2="${H - padB}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>
+    <circle id="hd" r="4" fill="var(--ink)" visibility="hidden"/>
+    <rect id="hov" x="0" y="0" width="${W - padR}" height="${H - padB}" fill="transparent"/>
+  </svg><div class="tip" id="tip" hidden></div>`;
+  const svg = box.querySelector("svg"), tip = $("tip"), hx = $("hx"), hd = $("hd");
+  const move = ev => {
+    const rc = svg.getBoundingClientRect(), px = (ev.clientX - rc.left) * (W / rc.width);
+    const i = Math.max(0, Math.min(rows.length - 1, Math.round(px / (W - padR) * (rows.length - 1))));
+    const X = x(i), Y = y(c[i]);
+    hx.setAttribute("x1", X); hx.setAttribute("x2", X); hx.setAttribute("visibility", "visible");
+    hd.setAttribute("cx", X); hd.setAttribute("cy", Y); hd.setAttribute("visibility", "visible");
+    tip.hidden = false; tip.style.left = (X / W * rc.width) + "px"; tip.style.top = (Y / H * rc.height) + "px";
+    tip.innerHTML = `${fmtDay(rows[i].t)}<br>${nf(c[i], dg)} ${esc(state.cur)}${s50[i] != null ? `<br>SMA50 ${nf(s50[i], dg)}` : ""}${s200[i] != null ? `<br>SMA200 ${nf(s200[i], dg)}` : ""}`;
+  };
+  const leave = () => { tip.hidden = true; hx.setAttribute("visibility", "hidden"); hd.setAttribute("visibility", "hidden"); };
+  $("hov").addEventListener("pointermove", move); $("hov").addEventListener("pointerleave", leave);
+
+  // RSI
+  const rb = $("c-rsi"), rW = Math.max(200, rb.clientWidth), rH = 110, rr = T.rs.slice(from);
+  const rx = i => (i / Math.max(1, rr.length - 1)) * (rW - 34), ry = v => (1 - v / 100) * (rH - 8) + 4;
+  const lastR = T.rs[n - 1];
+  rb.innerHTML = `<svg viewBox="0 0 ${rW} ${rH}" height="${rH}" role="img" aria-label="RSI ${nf(lastR, 0)}">
+    <rect x="0" y="${ry(70)}" width="${rW - 34}" height="${ry(30) - ry(70)}" fill="var(--accent-soft)"/>
+    ${[30, 50, 70].map(v => `<line x1="0" x2="${rW - 34}" y1="${ry(v)}" y2="${ry(v)}" stroke="var(--line)" stroke-dasharray="2 4"/><text x="${rW - 28}" y="${ry(v) + 4}">${v}</text>`).join("")}
+    <path d="${linePath(rr, rx, ry)}" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+    <circle cx="${rx(rr.length - 1)}" cy="${ry(lastR)}" r="3.5" fill="${lastR > 70 || lastR < 30 ? "var(--warn)" : "var(--accent)"}"/>
+  </svg>`;
+
+  // MACD
+  const mb = $("c-macd"), mW = Math.max(200, mb.clientWidth), mH = 110, mm = T.macd.slice(from), ms = T.sig.slice(from);
+  const hist = mm.map((v, i) => v != null && ms[i] != null ? v - ms[i] : null);
+  const ext = Math.max(...[...mm, ...ms, ...hist].filter(v => v != null).map(Math.abs)) || 1;
+  const mx_ = i => (i / Math.max(1, mm.length - 1)) * (mW - 8), my = v => mH / 2 - (v / ext) * (mH / 2 - 6);
+  const hb = Math.max(1, (mW - 8) / mm.length - 0.6);
+  mb.innerHTML = `<svg viewBox="0 0 ${mW} ${mH}" height="${mH}" role="img" aria-label="MACD">
+    <line x1="0" x2="${mW - 8}" y1="${mH / 2}" y2="${mH / 2}" stroke="var(--line)"/>
+    ${hist.map((v, i) => v == null ? "" : `<rect x="${(mx_(i) - hb / 2).toFixed(1)}" y="${Math.min(my(v), mH / 2).toFixed(1)}" width="${hb.toFixed(1)}" height="${Math.abs(my(v) - mH / 2).toFixed(1)}" fill="${v >= 0 ? "var(--up)" : "var(--down)"}" opacity="0.55"/>`).join("")}
+    <path d="${linePath(ms, mx_, my)}" fill="none" stroke="var(--sma50)" stroke-width="1.3"/>
+    <path d="${linePath(mm, mx_, my)}" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+  </svg>`;
+}
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+  range = +b.dataset.range; document.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", o === b)); drawCharts();
+}));
+let rzT; new ResizeObserver(() => { clearTimeout(rzT); rzT = setTimeout(drawCharts, 120); }).observe($("tech-body"));
+
+// ---------- rendering ----------
+function pips(v) { return `<div class="pips">${Array.from({ length: 10 }, (_, i) => `<span class="${i < v ? "on" : ""}"></span>`).join("")}</div>`; }
+function renderScores() {
+  const a = state.ai?.scores || {}, t = state.tech?.techScore ?? a.momentum;
+  const list = [["Värdering", a.valuation], ["Kvalitet", a.quality], ["Tillväxt", a.growth], ["Finansiell styrka", a.financialStrength], ["Teknisk trend", t]];
+  const have = list.filter(x => typeof x[1] === "number");
+  const tot = have.length ? have.reduce((s, x) => s + x[1], 0) / have.length : null;
+  $("scores").innerHTML = [...list.map(([l, v]) => `<div class="score"><span class="label">${l}</span>${typeof v === "number" ? `<span class="v">${v}<small> /10</small></span>${pips(v)}` : `<span class="sk" style="height:28px;width:50%"></span><span class="sk"></span>`}</div>`),
+    `<div class="score total"><span class="label">Totalbetyg</span>${tot != null ? `<span class="v">${nf(tot, 1)}<small> /10</small></span>${pips(Math.round(tot))}` : `<span class="v">–</span>${pips(0)}`}</div>`].join("");
+}
+function renderHero() {
+  const s = state, T = s.tech, a = s.ai;
+  $("h-tick").textContent = s.sym;
+  $("h-name").textContent = s.longName || s.name;
+  $("h-meta").innerHTML = [s.exchange, s.country, a?.sector, a?.industry].filter(Boolean).map(esc).map(x => `<span>${x}</span>`).join("");
+  if (a?.description) $("h-desc").textContent = a.description;
+  const price = T?.last ?? a?.priceEstimate;
+  if (price != null) {
+    $("h-price").textContent = nf(price, priceDigits(price)); $("h-cur").textContent = s.cur || a?.currency || "";
+    $("h-pricelabel").textContent = T ? "Senaste kurs" : "Ungefärlig kurs enligt Claude";
+  }
+  if (T) {
+    const ch = s.dayChange ?? (T.prev ? T.last / T.prev - 1 : null);
+    const d = $("h-delta"); d.hidden = ch == null; d.className = "delta " + (ch >= 0 ? "pos" : "neg"); d.textContent = pct(ch, 2) + " idag";
+    $("h-asof").textContent = "Yahoo Finance, " + fmtDay(s.asOf) + ". " + T.trend + ".";
+    $("h-range").hidden = false;
+    $("h-range-pin").style.left = (Math.max(0, Math.min(1, (T.last - T.lo52) / (T.hi52 - T.lo52 || 1))) * 100) + "%";
+    $("h-lo").textContent = nf(T.lo52, priceDigits(T.lo52)); $("h-hi").textContent = nf(T.hi52, priceDigits(T.hi52));
+  } else if (a?.priceAsOf) $("h-asof").textContent = "Från Claudes kunskap (" + a.priceAsOf + "). Ingen livekurs hämtad.";
+  if (a?.stance) {
+    const cls = /positiv/i.test(a.stance) ? "pos" : /negativ/i.test(a.stance) ? "neg" : "neu";
+    $("h-stance").className = "stance " + cls;
+    $("h-stance").innerHTML = `<div><span class="label">Analysens lutning</span><br><b>${esc(a.stance)}</b><p>${esc(a.stanceReason || "")}</p></div>`;
+  }
+}
+function renderTech() {
+  const T = state.tech;
+  if (!T) {
+    $("tech-body").innerHTML = `<div class="notice">${esc(state.liveErr || "Ingen kursdata.")}</div>`;
+    return;
+  }
+  const dg = priceDigits(T.last);
+  $("tech-kv").innerHTML = [
+    ["1 mån", pct(T.ret.m1)], ["3 mån", pct(T.ret.m3)], ["6 mån", pct(T.ret.m6)], ["1 år", pct(T.ret.y1)],
+    ["Hittills i år", pct(T.ret.ytd)], ["Volatilitet (år)", nf(T.vol * 100, 1) + " %"],
+    ["Max nedgång 1 år", pct(T.mdd)], ["ATR (14)", nf(T.atr, dg)],
+    ["Stöd (60 d)", nf(T.support, dg)], ["Motstånd (60 d)", nf(T.resist, dg)]
+  ].map(([k, v]) => `<div><span class="label">${k}</span><b>${v}</b></div>`).join("");
+  const cross = T.cross ? [{ name: T.cross.golden ? "Golden cross" : "Death cross", st: T.cross.golden ? "bull" : "bear", txt: T.cross.daysAgo + " handelsdagar sedan" }] : [];
+  $("tech-sig").innerHTML = [...T.signals, ...cross].map(s => `<tr><td>${esc(s.name)}</td><td><span class="sig ${s.st}">${esc(s.txt)}</span></td></tr>`).join("");
+  drawCharts();
+}
+function sevClass(s) { s = String(s || "").toLowerCase(); return s.startsWith("h") ? "hog" : s.startsWith("m") ? "medel" : "lag"; }
+function renderAI() {
+  const a = state.ai;
+  if (!a) return;
+  $("fund-asof").textContent = a.dataAsOf ? "Avser " + a.dataAsOf : "";
+  $("fund-body").innerHTML = (a.fundamentals || []).map(f => `<tr><td>${esc(f.label)}</td><td class="num">${esc(f.value)}</td><td class="muted">${esc(f.comment)}</td></tr>`).join("");
+  const rd = { billig: "bull", rimlig: "neu", dyr: "bear" };
+  $("val-body").innerHTML = (a.valuation?.metrics || []).map(m => `<tr><td>${esc(m.label)}</td><td class="num">${esc(m.value)}</td><td class="num muted">${esc(m.peer)}</td><td><span class="sig ${rd[String(m.read).toLowerCase()] || "neu"}">${esc(m.read)}</span></td></tr>`).join("");
+  $("val-summary").textContent = a.valuation?.summary || "";
+  const fv = a.valuation?.fairValue, price = state.tech?.last ?? a.priceEstimate;
+  if (fv && [fv.bear, fv.base, fv.bull].every(v => typeof v === "number") && price) {
+    const lo = Math.min(fv.bear, price) * 0.95, hi = Math.max(fv.bull, price) * 1.05, p = v => ((v - lo) / (hi - lo) * 100).toFixed(2) + "%";
+    const dg = priceDigits(price);
+    $("fv").hidden = false;
+    $("fv-track").innerHTML = `<span class="fill" style="left:${p(fv.bear)};right:calc(100% - ${p(fv.bull)})"></span><span class="tickm" style="left:${p(fv.base)}" title="Basfall"></span><span class="pin" style="left:${p(price)}" title="Aktuell kurs"></span>`;
+    $("fv-ends").innerHTML = `<span>Pessimistiskt ${nf(fv.bear, dg)}</span><span>Bas ${nf(fv.base, dg)}</span><span>Optimistiskt ${nf(fv.bull, dg)}</span>`;
+    const up = fv.base / price - 1;
+    $("fv-note").innerHTML = `Kursen (svart punkt) ${nf(price, dg)} ${esc(state.cur || a.currency || "")}. Basfallet ger <b class="mono" style="color:${up >= 0 ? "var(--up)" : "var(--down)"}">${pct(up)}</b>. ${esc(fv.method || "")}`;
+  }
+  const li = (arr, key) => (arr || []).map(r => `<li class="${sevClass(r[key])}"><div><h3>${esc(r.title)} <small>${esc(r[key])}</small></h3><p>${esc(r.detail)}</p></div></li>`).join("");
+  $("risks").innerHTML = li(a.risks, "severity");
+  $("opps").innerHTML = li(a.opportunities, "impact");
+  $("thesis").innerHTML = `<p class="thesis">${esc(a.thesis)}</p>`;
+  if (a.technicalComment && state.tech) $("tech-comment").textContent = a.technicalComment;
+}
+function skeletons() {
+  const sk = (r) => Array.from({ length: r }, (_, i) => `<span class="sk" style="width:${90 - i * 12}%"></span>`).join("");
+  $("h-desc").innerHTML = sk(2);
+  $("h-meta").innerHTML = ""; $("h-price").textContent = "–"; $("h-cur").textContent = ""; $("h-delta").hidden = true; $("h-asof").textContent = ""; $("h-range").hidden = true;
+  $("h-stance").className = "stance"; $("h-stance").innerHTML = `<div><span class="label">Analysens lutning</span><br><b>Väntar på analys</b><p>Claude läser in bolaget.</p></div>`;
+  $("tech-body").hidden = false;
+  $("tech-body").innerHTML = TECH_TEMPLATE;
+  $("tech-comment").textContent = "";
+  $("fund-asof").textContent = "";
+  const row = (cols) => `<tr>${Array.from({ length: cols }, () => `<td><span class="sk"></span></td>`).join("")}</tr>`;
+  $("fund-body").innerHTML = row(3).repeat(6); $("val-body").innerHTML = row(4).repeat(4);
+  $("fv").hidden = true; $("val-summary").textContent = "";
+  $("risks").innerHTML = `<li><div>${sk(3)}</div></li>`.repeat(3); $("opps").innerHTML = `<li><div>${sk(3)}</div></li>`.repeat(3);
+  $("thesis").innerHTML = sk(3); $("writing").textContent = "";
+}
+const TECH_TEMPLATE = $("tech-body").innerHTML;
+
+// ---------- Claude analysis ----------
+function buildPrompt() {
+  const s = state, T = s.tech, today = new Date().toISOString().slice(0, 10);
+  const live = T ? `LIVE KURSDATA (Yahoo Finance, ${new Date(s.asOf).toISOString().slice(0, 10)}), valuta ${s.cur}:
+- Senaste kurs ${T.last.toFixed(2)}, 52v högsta ${T.hi52.toFixed(2)}, 52v lägsta ${T.lo52.toFixed(2)}
+- Avkastning: 1 mån ${pct(T.ret.m1)}, 3 mån ${pct(T.ret.m3)}, 6 mån ${pct(T.ret.m6)}, 1 år ${pct(T.ret.y1)}, i år ${pct(T.ret.ytd)}
+- SMA50 ${T.s50.at(-1)?.toFixed(2) ?? "–"}, SMA200 ${T.s200.at(-1)?.toFixed(2) ?? "–"}, RSI14 ${T.rs.at(-1)?.toFixed(1)}, MACD ${T.macd.at(-1)?.toFixed(3)} mot signal ${T.sig.at(-1)?.toFixed(3)}
+- Volatilitet ${(T.vol * 100).toFixed(1)} %/år, max nedgång senaste året ${pct(T.mdd)}, trend: ${T.trend}
+Använd den här kursen för alla multiplar och för motiverat värde.` :
+`Ingen livekurs finns. Ange din senast kända ungefärliga kurs i "priceEstimate" och när den gäller i "priceAsOf".`;
+  return `Du är en erfaren aktieanalytiker. Skriv en balanserad analys på svenska av aktien nedan. Svara ENDAST med ett JSON-objekt enligt schemat, ingen annan text.
+
+Aktie: ${s.longName || s.name} (Yahoo-symbol ${s.sym}), börs ${s.exchange}, land ${s.country}. Dagens datum ${today}.
+${live}
+
+Fundamenta: använd din kunskap om bolagets senast rapporterade siffror. Avrunda, skriv "≈" vid osäkerhet och ange perioden i "dataAsOf" (t.ex. "Helår 2025"). Belopp per aktie anges i ${s.cur || "bolagets handelsvaluta"}${s.cur === "GBp" ? " (pence, inte pund)" : ""}. Var konkret om bolaget, inte generisk.
+
+Schema:
+{
+  "sector": "sektor", "industry": "bransch",
+  "currency": "${s.cur || "valuta"}",
+  ${T ? "" : '"priceEstimate": 123.4, "priceAsOf": "t.ex. mars 2026",\n  '}"description": "2 meningar om vad bolaget gör och hur det tjänar pengar",
+  "dataAsOf": "period för fundamenta",
+  "fundamentals": [ 7 st {"label": "Omsättning|Omsättningstillväxt|Bruttomarginal|Rörelsemarginal|Nettomarginal|Avkastning på eget kapital|Nettoskuld/EBITDA|Utdelning", "value": "kort värde med enhet", "comment": "max 12 ord"} ],
+  "valuation": {
+    "metrics": [ 5 st {"label": "P/E|EV/EBIT|P/S|P/B|Direktavkastning|FCF-avkastning", "value": "bolagets", "peer": "typisk nivå för sektorn", "read": "billig|rimlig|dyr"} ],
+    "fairValue": {"bear": tal, "base": tal, "bull": tal, "method": "en mening om metod och antaganden"},
+    "summary": "2 meningar om värderingen"
+  },
+  "scores": {"valuation": 1-10 (10 = mycket attraktiv värdering), "quality": 1-10, "growth": 1-10, "financialStrength": 1-10, "momentum": 1-10},
+  "risks": [ 4-5 st {"title": "kort rubrik", "detail": "1-2 meningar, bolagsspecifikt", "severity": "Hög|Medel|Låg"} ],
+  "opportunities": [ 4-5 st {"title": "kort rubrik", "detail": "1-2 meningar, bolagsspecifikt", "impact": "Hög|Medel|Låg"} ],
+  ${T ? '"technicalComment": "2 meningar som tolkar den tekniska bilden ovan",\n  ' : ""}"stance": "Positiv|Neutral|Negativ",
+  "stanceReason": "en mening",
+  "thesis": "4-5 meningar som väger ihop fundamenta, värdering, teknik, risker och möjligheter"
+}`;
+}
+function aiErrText(code) {
+  switch (code) {
+    case "not_granted": return "Sidan har inte fått använda Claude. Tekniska analysen bygger på kursdatan ovan.";
+    case "sampling_disabled": case "not_declared": case "capability_disabled": case "capability_removed": return "Claude är inte tillgänglig i den här vyn, så den skrivna analysen saknas.";
+    case "rate_limited": return "För många analyser på kort tid. Vänta en stund och dra sedan en ny aktie.";
+    case "session_expired": return "Du behöver logga in igen för att få analysen.";
+    case "invalid_json": case "empty_completion": return "Analysen kom tillbaka i fel format. Dra en ny aktie eller försök igen.";
+    case "refused": return "Claude avböjde att analysera den här aktien. Dra en ny.";
+    default: return "Analysen avbröts (" + (code || "okänt fel") + "). Försök igen.";
+  }
+}
+async function runAI(my) {
+  const sample = await getSample();
+  if (my !== runId) return;
+  if (!sample) { setChip("st-ai", "err", "Analys saknas"); aiFail("Claude är inte tillgänglig i den här vyn. Öppna sidan i Claude för den skrivna analysen."); return; }
+  setChip("st-ai", "busy", "Claude analyserar");
+  aiCtl = new AbortController();
+  try {
+    const data = await sample.json(buildPrompt(), {
+      signal: aiCtl.signal, cache: false,
+      onText: ({ text }) => { if (my === runId) $("writing").textContent = "Claude skriver… " + text.length.toLocaleString("sv-SE") + " tecken"; }
+    });
+    if (my !== runId) return;
+    state.ai = data; $("writing").textContent = "";
+    if (data.currency && !state.cur) state.cur = data.currency;
+    renderHero(); renderAI(); renderScores();
+    setChip("st-ai", "ok", "Analys klar");
+  } catch (e) {
+    if (my !== runId || e?.code === "cancelled") return;
+    setChip("st-ai", "err", "Analys misslyckades"); aiFail(aiErrText(e?.code));
+  }
+}
+function aiFail(msg) {
+  $("writing").textContent = "";
+  $("thesis").innerHTML = `<div class="notice err">${esc(msg)}</div>`;
+  ["fund-body", "val-body"].forEach(id => $(id).innerHTML = `<tr><td colspan="4" class="muted">Ingen analys.</td></tr>`);
+  $("risks").innerHTML = $("opps").innerHTML = `<li class="lag"><div><p>Ingen analys.</p></div></li>`;
+  $("h-stance").innerHTML = `<div><span class="label">Analysens lutning</span><br><b>Saknas</b><p>${esc(msg)}</p></div>`;
+  renderScores();
+}
+
+// ---------- slot-style reveal + run ----------
+async function shuffleTo(pick) {
+  if (reduceMotion) return;
+  const el = $("h-tick"), nm = $("h-name");
+  for (let i = 0; i < 14; i++) {
+    const r = UNIVERSE[Math.floor(Math.random() * UNIVERSE.length)];
+    el.textContent = r.sym; nm.textContent = r.name;
+    await new Promise(res => setTimeout(res, 40 + i * 9));
+  }
+}
+let lastSym = null;
+function randomPick() { let p; do { p = UNIVERSE[Math.floor(Math.random() * UNIVERSE.length)]; } while (p.sym === lastSym); lastSym = p.sym; return p; }
+
+async function newStock() {
+  const my = ++runId; aiCtl?.abort();
+  const btn = $("btn-new"); btn.disabled = true;
+  skeletons();
+  let pick = randomPick();
+  state = { ...pick, exchange: exchOf(pick.sym), cur: "", tech: null, ai: null };
+  renderScores();
+  setChip("st-price", "busy", "Hämtar kurser"); setChip("st-ai", "", "Analys");
+  const reveal = shuffleTo(pick);
+  // live price data; on "no data" try up to two other symbols
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const raw = await fetchChart(state.sym);
+      if (my !== runId) return;
+      const m = raw.chart.result[0].meta;
+      state.cur = m.currency || ""; state.longName = m.longName || m.shortName || state.name;
+      if (m.fullExchangeName) state.exchange = m.fullExchangeName;
+      state.asOf = (m.regularMarketTime || raw.chart.result[0].timestamp.at(-1)) * 1000;
+      state.dayChange = m.regularMarketChangePercent != null ? m.regularMarketChangePercent / 100 : null;
+      state.tech = analyse(raw);
+      setChip("st-price", "ok", "Livekurser");
+      break;
+    } catch (e) {
+      if (my !== runId) return;
+      if ((e?.code === "nodata" || e?.code === "parse") && attempt < 2) { pick = randomPick(); Object.assign(state, pick, { exchange: exchOf(pick.sym) }); continue; }
+      state.liveErr = liveErrText(e); setChip("st-price", "err", "Ingen livekurs");
+      break;
+    }
+  }
+  await reveal; if (my !== runId) return;
+  renderHero(); renderTech(); renderScores();
+  btn.disabled = false;
+  runAI(my);
+}
+$("btn-new").addEventListener("click", newStock);
+newStock();
+</script>
